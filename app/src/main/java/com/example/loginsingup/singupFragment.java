@@ -2,11 +2,25 @@ package com.example.loginsingup;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -15,6 +29,44 @@ import android.view.ViewGroup;
  */
 public class singupFragment extends Fragment {
 
+    View objectSignUpFragment;
+    private Button signUpBtn;
+    private EditText mailEt,passEt,confirmPassEt;
+    private FirebaseAuth mAuth;
+    private TextView signUpToLogInTxt;
+
+
+    private void attachComponents(){
+        try{
+            signUpBtn=objectSignUpFragment.findViewById(R.id.signUpBtn);
+            mailEt=objectSignUpFragment.findViewById(R.id.emailEt);
+            passEt=objectSignUpFragment.findViewById(R.id.passwordEt);
+            confirmPassEt=objectSignUpFragment.findViewById(R.id.confirmPasswordEt);
+            signUpToLogInTxt=objectSignUpFragment.findViewById(R.id.signupToLoginTxt);
+
+            mAuth=FirebaseAuth.getInstance();
+
+            signUpBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    createUser();
+                }
+            });
+            signUpToLogInTxt.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    loginFragment logInFragment=new loginFragment();
+                    FragmentManager manager=getFragmentManager();
+                    manager.beginTransaction()
+                            .replace(R.id.fram1,logInFragment,logInFragment.getTag())
+                            .commit();
+                }
+            });
+        }
+        catch(Exception e){
+            Toast.makeText(getContext(),e.getMessage(),Toast.LENGTH_SHORT).show();
+        }
+    }
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
@@ -34,7 +86,7 @@ public class singupFragment extends Fragment {
      *
      * @param param1 Parameter 1.
      * @param param2 Parameter 2.
-     * @return A new instance of fragment singupFragment.
+     * @return A new instance of fragment SignUpFragment.
      */
     // TODO: Rename and change types and number of parameters
     public static singupFragment newInstance(String param1, String param2) {
@@ -46,6 +98,57 @@ public class singupFragment extends Fragment {
         return fragment;
     }
 
+    public static boolean isEmailValid(String email) {
+        String expression = "^[\\w\\.-]+@([\\w\\-]+\\.)+[A-Z]{2,4}$";
+        Pattern pattern = Pattern.compile(expression, Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }
+
+    public static boolean isPasswordValid(final String password) {
+
+        Pattern pattern;
+        Matcher matcher;
+        final String PASSWORD_PATTERN = "^(?=.*[0-9])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{4,}$";
+        pattern = Pattern.compile(PASSWORD_PATTERN);
+        matcher = pattern.matcher(password);
+        return matcher.matches();
+
+    }
+
+    public void createUser(){
+        try{
+            if(!mailEt.getText().toString().isEmpty()&&!passEt.getText().toString().isEmpty()&&!confirmPassEt.getText().toString().isEmpty()){
+                if(passEt.getText().toString().equals(confirmPassEt.getText().toString())){
+                    mAuth.createUserWithEmailAndPassword(mailEt.getText().toString(),passEt.getText().toString())
+                            .addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                                @Override
+                                public void onSuccess(AuthResult authResult) {
+                                    Toast.makeText(getContext(), "Account created.", Toast.LENGTH_SHORT).show();
+                                    if(mAuth.getCurrentUser()!=null){
+                                        mAuth.signOut();
+                                    }
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(getContext(),e.getMessage(), Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                }
+                else{
+                    Toast.makeText(getContext(), "Passwords do not match.", Toast.LENGTH_SHORT).show();
+                }
+            }
+            else{
+                Toast.makeText(getContext(), "Missing fields identified.", Toast.LENGTH_SHORT).show();
+            }
+        }
+        catch (Exception e){
+            Toast.makeText(getContext(),e.getMessage(),Toast.LENGTH_SHORT).show();
+        }
+    }
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,9 +159,15 @@ public class singupFragment extends Fragment {
     }
 
     @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_singup, container, false);
+        objectSignUpFragment=inflater.inflate(R.layout.fragment_singup,container,false);
+        attachComponents();
+
+        return objectSignUpFragment;
     }
 }
